@@ -1,13 +1,20 @@
 import numpy as np
 import torch
 import sklearn.preprocessing as pproc
+import math
+
+def log(x,basis =10):
+	return math.log(x,basis)
 
 class IB(object):
 	"""
 	One dimensional information bottleneck.
 	For continuous data, discretization is processed.
 	"""
-	def __init__(self,dim_hidden = 2,data_type='discrete',beta = 0.1, tol = 10**-15,max_iter = 500, seed=None,check_result=True):
+	def __init__(self,dim_hidden = 2,data_type='discrete', #data parameter
+					beta = 0.1, tol = 10**-15,max_iter = 500, # hyper parameter
+					log_basis = 10
+					seed=None,check_result=True):
 		self.dim_hidden = dim_hidden
 		self.dtype = data_type
 		self.beta = beta
@@ -15,6 +22,7 @@ class IB(object):
 		self.tol = tol
 		self.hist_converge = []
 		self.check_res = check_result
+		self.log_basis = log_basis # entropy/MI calculation with specific basis (2 or 10)
 
 		np.random.seed(seed)
 
@@ -74,7 +82,7 @@ class IB(object):
 
 		res = 0
 		if P.ndim==1 and Q.ndim==1:
-			res = (P*(np.log(P)-np.log(Q))).sum()
+			res = (P*(log(P,self.log_basis)-log(Q,self.log_basis))).sum()
 
 		elif P.ndim==2 and Q.ndim==2:
 			py_x = P[:,:,np.newaxis]
@@ -83,7 +91,7 @@ class IB(object):
 			py_z = Q[:,np.newaxis,:]
 			py_z = np.tile(py_z,(1,P.shape[1],1))
 
-			log_py_xz = np.log((py_x+smoothing)) - np.log((py_z+smoothing)) # for non 0 division.
+			log_py_xz = log((py_x+smoothing),self.log_basis) - log((py_z+smoothing),self.log_basis) # for non 0 division.
 
 			res = np.sum(py_x * log_py_xz,axis=0) # KL-div matrix with Mij = Dkl[p(y|xi)||p(y|zj)]
 
@@ -190,7 +198,7 @@ class IB(object):
 		"""
 		PQ_prod = P.reshape((-1,1)).dot(Q.reshape((1,-1))) #distribution (P x Q)
 		
-		MI_mat = PQ * (np.log(PQ+smoothing) - np.log(PQ_prod+smoothing))
+		MI_mat = PQ * (log(PQ+smoothing,self.log_basis) - log(PQ_prod+smoothing,self.log_basis))
 
 		return MI_mat.sum()
 
@@ -283,7 +291,7 @@ class IB(object):
 		py = np.tile(py.reshape((-1,1)),(1,nz)) 
 		# pz = np.tile(pz.reshape((1,-1)),(ny,1)) 
 
-		sums = np.sum(py_z * (np.log(py_z) - np.log(py)),axis = 0)
+		sums = np.sum(py_z * (log(py_z,self.log_basis) - log(py,self.log_basis)),axis = 0)
 
 		self.contrib = sums*pz
 
@@ -293,7 +301,7 @@ class IB(object):
 class sIB(IB):
 	
 	# Sequential information bottleneck is one of 'hard' clustering presented in paper.
-	# It can be extanded to soft clustering.
+	# It can be extanded to soft clustering.)
 	def __init__(self,dim_hidden = 2,data_type='discrete',beta = 0.1, tol = 10**-15,max_iter = 500, seed=None,check_result=False,):
 		super().__init__(self,dim_hidden,data_type,beta, tol,max_iter, seed,check_result)
 		#self.initialize_ib = initialize_ib
@@ -301,7 +309,7 @@ class sIB(IB):
 
 	def run_IB(self,X,Y):
 		super().fit(X,Y)
-		self.iib = 
+		# self.iib = 
 
 	def initialize_z(self):
 		# The partition is 'hard'
