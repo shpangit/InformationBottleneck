@@ -4,7 +4,7 @@ import sklearn.preprocessing as pproc
 import math
 
 def log(x,basis =10):
-	return math.log(x,basis)
+	return np.log(x) / np.log(basis)
 
 class IB(object):
 	"""
@@ -13,7 +13,7 @@ class IB(object):
 	"""
 	def __init__(self,dim_hidden = 2,data_type='discrete', #data parameter
 					beta = 0.1, tol = 10**-15,max_iter = 500, # hyper parameter
-					log_basis = 10
+					log_basis = np.e,
 					seed=None,check_result=True):
 		self.dim_hidden = dim_hidden
 		self.dtype = data_type
@@ -240,8 +240,6 @@ class IB(object):
 		self.L.append(I_xz - self.beta * I_yz)
 
 
-	# TO DO :
-	# Clustering results + sIB algorithm.
 
 	def clustering(self):
 
@@ -267,6 +265,7 @@ class IB(object):
 
 	def Error_checking():
 		"""
+		NOT USED
 		TODO
 		Check if there is errory like, sum of distribution != 1
 		"""
